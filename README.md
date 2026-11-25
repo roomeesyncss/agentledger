@@ -14,17 +14,24 @@ See every model call, tool call and retry as a timed tree, with cost rolled up p
 
 ---
 
+<p align="center"><img src="docs/timeline.png" alt="agentledger HTML timeline for a support agent run" width="860"></p>
+
+The same run in the terminal:
+
 ```text
-research_agent [agent]         1.76s  $0.0457
-├─ plan [llm]                  350ms    1840→212   tok  $0.0116
-├─ search_docs [retrieval]     120ms
-├─ fetch_url [tool]            180ms
-├─ fetch_url [tool]            180ms  ✗ TimeoutError: upstream timed out after 180ms
-├─ fetch_url [tool]            180ms  ✗ TimeoutError: upstream timed out after 180ms
-├─ synthesise [llm]            600ms    5210→640   tok  $0.0340
-└─ self_check [llm]            150ms     980→45    tok  $0.0001
-── 8 spans · 1.76s · 8,030 in / 897 out tokens · $0.0457 · 2 error(s)
+support_agent [agent]                  2.55s  $0.0112
+├─ classify_ticket [llm]               321ms     612→24    tok  $0.0001
+├─ search_kb [retrieval]               140ms
+├─ get_order [tool]                     90ms  ✗ RateLimitError: 429 Too Many Requests (retry-after: 0.4s)
+├─ get_order [tool]                    211ms
+├─ check_refund_eligibility [tool]       0ms
+├─ draft_reply [llm]                   959ms    1180→286   tok  $0.0110
+├─ policy_guardrail [llm]              260ms     904→9     tok  $0.0001
+└─ create_refund [tool]                160ms
+── 9 spans · 2.55s · 2,696 in / 319 out tokens · $0.0112 · 1 error(s)
 ```
+
+Here you can see at a glance that the order API rate-limited the first call, and that almost all of the cost is the one Opus call that writes the customer reply.
 
 ## Why
 
@@ -66,13 +73,13 @@ with tracer.span("support_agent", kind="agent", input=question) as agent:
     agent.event("guardrail_passed")
 ```
 
-Try it without an API key:
+Try it without an API key. [`examples/support_agent.py`](examples/support_agent.py) simulates a support agent handling a refund ticket: ticket classification, knowledge-base search, a rate-limited order API with backoff, a refund policy check and a guardrail on the reply.
 
 ```bash
-python examples/simulated_agent.py
-agentledger view  traces/demo.jsonl
-agentledger stats traces/demo.jsonl
-agentledger html  traces/demo.jsonl -o traces/demo.html
+python examples/support_agent.py
+agentledger view  traces/support.jsonl
+agentledger stats traces/support.jsonl
+agentledger html  traces/support.jsonl -o traces/support.html
 ```
 
 ### With Claude
