@@ -42,7 +42,8 @@ def cmd_stats(args: argparse.Namespace) -> int:
         json.dump(summary.to_dict(), sys.stdout, indent=2)
         sys.stdout.write("\n")
         return 0
-    print(f"spans      {summary.spans}  ({summary.errors} errors)")
+    noun = "error" if summary.errors == 1 else "errors"
+    print(f"spans      {summary.spans}  ({summary.errors} {noun})")
     print(f"wall time  {fmt_ms(summary.duration_ms)}")
     print(
         f"tokens     {summary.input_tokens:,} in · {summary.output_tokens:,} out · "
